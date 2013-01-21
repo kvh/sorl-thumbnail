@@ -28,6 +28,23 @@ class ThumbnailBackend(object):
         ('progressive', 'THUMBNAIL_PROGRESSIVE'),
         ('orientation', 'THUMBNAIL_ORIENTATION'),
     )
+    
+    file_extension = lambda inst, file_: str(file_).split('.')[-1].lower()
+
+    def _get_format(self, file_):
+        file_extension = self.file_extension(file_)
+
+        is_jpeg = re.match('jpg|jpeg', file_extension)
+        is_png = re.match('png', file_extension)
+
+        if is_jpeg:
+            format_ = 'JPEG'
+        elif is_png:
+            format_ = 'PNG'
+        else:
+            format_ = default_settings.THUMBNAIL_FORMAT
+
+        return str(format_)
 
     def get_thumbnail(self, file_, geometry_string, **options):
         """
@@ -35,6 +52,11 @@ class ThumbnailBackend(object):
         options given. First it will try to get it from the key value store,
         secondly it will create it.
         """
+        try:
+            # preserve image format if possible
+            self.default_options['format'] = self._get_format(file_)
+        except (IndexError, ValueError):
+            pass
         source = ImageFile(file_)
         for key, value in self.default_options.iteritems():
             options.setdefault(key, value)
